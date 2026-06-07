@@ -1,0 +1,62 @@
+name: CD — PulseBoard
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+
+  deploy:
+    name: Build, Push & Deploy
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push auth-service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/auth-service
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/pulseboard-auth:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/pulseboard-auth:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: deploy
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 2200
+          script: |
+            cd /opt/pulseboard
+            git pull origin main
+            cd services/auth-service
+            source .venv/bin/activate
+            pip install -r requirements.txt -q
+            sudo systemctl restart pulseboard-auth
+            sleep 3
+            sudo systemctl reload nginx
+
+      - name: Smoke test
+        run: |
+          sleep 10
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://pulseboard.duckdns.org/api/auth/health)
+          if [ "$STATUS" = "200" ]; then
+            echo "✓ Deployment successful — https://pulseboard.duckdns.org"
+          else
+            echo "✗ Smoke test failed — status $STATUS"
+            exit 1
+          fi
