@@ -1,0 +1,9 @@
+---
+- name: Provision PulseBoard Server
+  hosts: pulseboard
+  become: yes
+
+  roles:
+    - common
+    - docker
+    - app

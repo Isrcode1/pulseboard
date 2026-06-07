@@ -1,0 +1,118 @@
+---
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Upgrade all packages
+  apt:
+    upgrade: dist
+    autoremove: yes
+
+- name: Install essential packages
+  apt:
+    name:
+      - curl
+      - wget
+      - git
+      - vim
+      - htop
+      - ufw
+      - net-tools
+      - unzip
+      - python3
+      - python3-pip
+      - python3-venv
+    state: present
+
+- name: Create deploy user
+  user:
+    name: deploy
+    groups: sudo
+    shell: /bin/bash
+    create_home: yes
+    state: present
+
+- name: Copy SSH keys to deploy user
+  authorized_key:
+    user: deploy
+    state: present
+    key: "{{ lookup('file', '~/.ssh/pulseboard-key.pub') }}"
+
+- name: Allow deploy user passwordless sudo for service commands
+  copy:
+    dest: /etc/sudoers.d/pulseboard
+    content: |
+      deploy ALL=(ALL) NOPASSWD: /bin/systemctl restart pulseboard-auth
+      deploy ALL=(ALL) NOPASSWD: /bin/systemctl reload nginx
+      deploy ALL=(ALL) NOPASSWD: /bin/systemctl start pulseboard-auth
+      deploy ALL=(ALL) NOPASSWD: /bin/systemctl enable pulseboard-auth
+      deploy ALL=(ALL) NOPASSWD: /usr/sbin/nginx -t
+      deploy ALL=(ALL) NOPASSWD: /usr/sbin/ufw
+      deploy ALL=(ALL) NOPASSWD: /usr/bin/apt
+    mode: '0440'
+    validate: visudo -cf %s
+
+- name: Configure UFW defaults
+  ufw:
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  loop:
+    - { direction: incoming, policy: deny }
+    - { direction: outgoing, policy: allow }
+
+- name: Allow SSH port 2200
+  ufw:
+    rule: allow
+    port: '2200'
+    proto: tcp
+
+- name: Allow HTTP
+  ufw:
+    rule: allow
+    port: '80'
+    proto: tcp
+
+- name: Allow HTTPS
+  ufw:
+    rule: allow
+    port: '443'
+    proto: tcp
+
+- name: Enable UFW
+  ufw:
+    state: enabled
+
+- name: Harden SSH config
+  copy:
+    dest: /etc/ssh/sshd_config
+    content: |
+      Include /etc/ssh/sshd_config.d/*.conf
+      Port 2200
+      AllowUsers deploy ubuntu
+      PermitRootLogin no
+      PasswordAuthentication no
+      ChallengeResponseAuthentication no
+      UsePAM yes
+      PubkeyAuthentication yes
+      AuthorizedKeysFile .ssh/authorized_keys
+      ClientAliveInterval 300
+      ClientAliveCountMax 2
+      X11Forwarding no
+      MaxAuthTries 3
+      SyslogFacility AUTH
+      LogLevel VERBOSE
+      AcceptEnv LANG LC_*
+      Subsystem sftp /usr/lib/openssh/sftp-server
+    validate: sshd -t -f %s
+  notify: restart ssh
+
+- name: Install Nginx
+  apt:
+    name: nginx
+    state: present
+
+- name: Enable and start Nginx
+  systemd:
+    name: nginx
+    enabled: yes

@@ -1,0 +1,149 @@
+---
+- name: Install PostgreSQL
+  apt:
+    name:
+      - postgresql
+      - postgresql-contrib
+      - libpq-dev
+    state: present
+
+- name: Start and enable PostgreSQL
+  systemd:
+    name: postgresql
+    enabled: yes
+    state: started
+
+- name: Install psycopg2 for Ansible PostgreSQL modules
+  apt:
+    name: python3-psycopg2
+    state: present
+
+- name: Create pulseboard DB user and database
+  shell: |
+    sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='pulseboard'" | grep -q 1 || sudo -u postgres psql -c "CREATE USER pulseboard WITH PASSWORD 'pulseboard';"
+    sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='pulseboard'" | grep -q 1 || sudo -u postgres psql -c "CREATE DATABASE pulseboard OWNER pulseboard;"
+  changed_when: false
+
+- name: Create /opt/pulseboard directory
+  file:
+    path: /opt/pulseboard
+    state: directory
+    owner: deploy
+    group: deploy
+    mode: '0755'
+
+- name: Clone PulseBoard repository
+  git:
+    repo: https://github.com/Isrcode1/pulseboard.git
+    dest: /opt/pulseboard
+    version: main
+    force: yes
+  become: yes
+  become_user: deploy
+
+- name: Create Python virtual environment
+  command: python3 -m venv /opt/pulseboard/services/auth-service/.venv
+  args:
+    creates: /opt/pulseboard/services/auth-service/.venv
+  become_user: deploy
+
+- name: Install Python dependencies
+  pip:
+    requirements: /opt/pulseboard/services/auth-service/requirements.txt
+    virtualenv: /opt/pulseboard/services/auth-service/.venv
+    extra_args: "--upgrade sqlalchemy"
+  become_user: deploy
+
+- name: Create auth-service .env file
+  copy:
+    dest: /opt/pulseboard/services/auth-service/.env
+    content: |
+      APP_NAME=pulseboard-auth
+      DEBUG=false
+      PORT=8001
+      DATABASE_URL=postgresql+asyncpg://pulseboard:pulseboard@localhost:5432/pulseboard
+      REDIS_URL=redis://localhost:6379/0
+      GITHUB_CLIENT_ID={{ github_client_id }}
+      GITHUB_CLIENT_SECRET={{ github_client_secret }}
+      GITHUB_REDIRECT_URI=https://pulseboard.duckdns.org/auth/github/callback
+      JWT_SECRET_KEY={{ jwt_secret_key }}
+      JWT_ALGORITHM=HS256
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS=30
+    mode: '0600'
+    owner: deploy
+    group: deploy
+
+- name: Create systemd service for auth-service
+  copy:
+    dest: /etc/systemd/system/pulseboard-auth.service
+    content: |
+      [Unit]
+      Description=PulseBoard Auth Service
+      After=network.target postgresql.service
+
+      [Service]
+      Type=simple
+      User=deploy
+      WorkingDirectory=/opt/pulseboard/services/auth-service
+      EnvironmentFile=/opt/pulseboard/services/auth-service/.env
+      ExecStart=/opt/pulseboard/services/auth-service/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8001 --workers 2
+      Restart=always
+      RestartSec=5
+      StandardOutput=journal
+      StandardError=journal
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Enable and start auth-service
+  systemd:
+    name: pulseboard-auth
+    daemon_reload: yes
+    enabled: yes
+    state: started
+
+- name: Configure Nginx for PulseBoard
+  copy:
+    dest: /etc/nginx/sites-available/pulseboard
+    content: |
+      server {
+          listen 80;
+          server_name _;
+          root /var/www/pulseboard;
+          index index.html;
+
+          location /api/auth/ {
+              proxy_pass http://127.0.0.1:8001/;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+
+          location / {
+              try_files $uri $uri/ =404;
+          }
+      }
+  notify: reload nginx
+
+- name: Enable PulseBoard Nginx site
+  file:
+    src: /etc/nginx/sites-available/pulseboard
+    dest: /etc/nginx/sites-enabled/pulseboard
+    state: link
+
+- name: Disable default Nginx site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: reload nginx
+
+- name: Create web root
+  file:
+    path: /var/www/pulseboard
+    state: directory
+    owner: deploy
+    group: deploy
+    mode: '0755'
+

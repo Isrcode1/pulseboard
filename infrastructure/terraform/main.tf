@@ -149,6 +149,7 @@ resource "aws_instance" "pulseboard" {
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.pulseboard.id]
   key_name               = aws_key_pair.pulseboard.key_name
+  user_data              = local.user_data
 
   root_block_device {
     volume_size = 20
@@ -162,4 +163,23 @@ resource "aws_instance" "pulseboard" {
     Environment = var.environment
     ManagedBy   = "terraform"
   }
+}
+
+locals {
+  user_data = <<-USERDATA
+    #!/bin/bash
+    # Add port 2200 to SSH config
+    echo "Port 22" >> /etc/ssh/sshd_config
+    echo "Port 2200" >> /etc/ssh/sshd_config
+    systemctl restart sshd
+    # Create deploy user
+    adduser --disabled-password --gecos '' deploy
+    usermod -aG sudo deploy
+    mkdir -p /home/deploy/.ssh
+    cp /home/ubuntu/.ssh/authorized_keys /home/deploy/.ssh/
+    chown -R deploy:deploy /home/deploy/.ssh
+    chmod 700 /home/deploy/.ssh
+    chmod 600 /home/deploy/.ssh/authorized_keys
+    echo "deploy ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/deploy
+  USERDATA
 }
