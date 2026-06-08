@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pulseboard
+  labels:
+    project: pulseboard
+    managed-by: kubectl
