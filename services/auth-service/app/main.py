@@ -42,6 +42,6 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 async def root():
     return {
         "service": "pulseboard-auth",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "status": "running",
     }

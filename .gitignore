@@ -46,3 +46,6 @@ Thumbs.db
 *.pem
 *.key
 *.p12
+infrastructure/terraform/terraform.tfvars
+infrastructure/terraform/.terraform/
+infrastructure/terraform/*.tfstate
