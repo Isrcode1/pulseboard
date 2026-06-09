@@ -3,6 +3,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import Optional
 
 from app.database import get_db
@@ -26,6 +27,14 @@ async def get_current_user_id(authorization: Optional[str] = Header(None)) -> uu
     return uuid.UUID(resp.json()["user_id"])
 
 
+def profile_query():
+    return select(models.Profile).options(
+        selectinload(models.Profile.skills),
+        selectinload(models.Profile.social_links),
+        selectinload(models.Profile.pinned_projects),
+    )
+
+
 @router.post("/profile", response_model=schemas.ProfileOut, status_code=201)
 async def create_profile(
     data: schemas.ProfileCreate,
@@ -33,7 +42,7 @@ async def create_profile(
     db: AsyncSession = Depends(get_db),
 ):
     existing = await db.execute(
-        select(models.Profile).where(models.Profile.user_id == user_id)
+        profile_query().where(models.Profile.user_id == user_id)
     )
     if existing.scalar_one_or_none():
         raise HTTPException(400, "Profile already exists. Use PUT to update.")
@@ -47,8 +56,11 @@ async def create_profile(
     profile = models.Profile(user_id=user_id, **data.model_dump())
     db.add(profile)
     await db.flush()
-    await db.refresh(profile)
-    return profile
+
+    result = await db.execute(
+        profile_query().where(models.Profile.id == profile.id)
+    )
+    return result.scalar_one()
 
 
 @router.get("/profile/me", response_model=schemas.ProfileOut)
@@ -57,7 +69,7 @@ async def get_my_profile(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(models.Profile).where(models.Profile.user_id == user_id)
+        profile_query().where(models.Profile.user_id == user_id)
     )
     profile = result.scalar_one_or_none()
     if not profile:
@@ -72,7 +84,7 @@ async def update_profile(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(models.Profile).where(models.Profile.user_id == user_id)
+        profile_query().where(models.Profile.user_id == user_id)
     )
     profile = result.scalar_one_or_none()
     if not profile:
@@ -82,8 +94,11 @@ async def update_profile(
         setattr(profile, field, value)
 
     await db.flush()
-    await db.refresh(profile)
-    return profile
+
+    result = await db.execute(
+        profile_query().where(models.Profile.id == profile.id)
+    )
+    return result.scalar_one()
 
 
 @router.post("/profile/me/skills", response_model=schemas.SkillOut, status_code=201)
@@ -128,7 +143,6 @@ async def delete_skill(
     skill = skill_result.scalar_one_or_none()
     if not skill:
         raise HTTPException(404, "Skill not found")
-
     await db.delete(skill)
 
 
