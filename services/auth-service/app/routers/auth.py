@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-
 from app.database import get_db
 from app.config import settings
 from app.utils.jwt import create_access_token, create_refresh_token_str, decode_token
@@ -14,7 +13,6 @@ from app import models, schemas
 router = APIRouter()
 
 GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize"
-
 
 @router.get("/github/login")
 async def github_login():
@@ -26,20 +24,16 @@ async def github_login():
     )
     return RedirectResponse(url)
 
-
-@router.get("/github/callback", response_model=schemas.TokenResponse)
+@router.get("/github/callback")
 async def github_callback(code: str, db: AsyncSession = Depends(get_db)):
-    # Exchange code for GitHub token
     github_token = await exchange_code_for_token(code)
     if not github_token:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid OAuth code")
 
-    # Get user info from GitHub
     gh_user = await get_github_user(github_token)
     if "id" not in gh_user:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Could not fetch GitHub user")
 
-    # Upsert user
     result = await db.execute(
         select(models.User).where(models.User.github_id == gh_user["id"])
     )
@@ -63,11 +57,9 @@ async def github_callback(code: str, db: AsyncSession = Depends(get_db)):
 
     await db.flush()
 
-    # Create tokens
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token_str = create_refresh_token_str(str(user.id))
 
-    # Store refresh token hash
     token_hash = hashlib.sha256(refresh_token_str.encode()).hexdigest()
     refresh_token_obj = models.RefreshToken(
         user_id=user.id,
@@ -77,13 +69,12 @@ async def github_callback(code: str, db: AsyncSession = Depends(get_db)):
         ),
     )
     db.add(refresh_token_obj)
+    await db.commit()
 
-    return schemas.TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token_str,
-        user=schemas.UserOut.model_validate(user),
+    return RedirectResponse(
+        url=f"{settings.FRONTEND_URL}/callback?token={access_token}&refresh={refresh_token_str}",
+        status_code=302,
     )
-
 
 @router.post("/verify", response_model=schemas.TokenVerifyResponse)
 async def verify_token(token: str, db: AsyncSession = Depends(get_db)):
