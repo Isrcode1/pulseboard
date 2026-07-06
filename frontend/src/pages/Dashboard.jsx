@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
 
@@ -105,143 +105,211 @@ export default function Dashboard() {
     navigate('/')
   }
 
-  if (loading) return <div style={styles.center}>Loading...</div>
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen bg-[#070913]">
+      <span className="font-mono text-xs text-blue-400 animate-pulse">Loading dashboard...</span>
+    </div>
+  )
 
   if (error === 'no_profile') return (
-    <div style={styles.center}>
-      <div style={{ textAlign: 'center' }}>
-        <h2 style={{ color: 'var(--cyan)', marginBottom: '16px' }}>Welcome to PulseBoard</h2>
-        <p style={{ color: 'var(--muted)', fontFamily: 'monospace', marginBottom: '24px' }}>
-          You don't have a profile yet. Create one to get your public link.
+    <div className="flex items-center justify-center min-h-screen bg-[#070913] px-6 text-center">
+      <div className="max-w-md space-y-6">
+        <h2 className="text-2xl font-extrabold text-white font-display">Welcome to PulseBoard</h2>
+        <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
+          You don't have a profile yet. Create one to claim your custom link and start showcasing your work.
         </p>
-        <button onClick={createProfile} disabled={saving} style={styles.btn}>
-          {saving ? 'Creating...' : 'Create My Profile'}
+        <button 
+          onClick={createProfile} 
+          disabled={saving} 
+          className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-semibold text-white transition-all shadow-lg hover:shadow-blue-500/10 cursor-pointer disabled:opacity-50"
+        >
+          {saving ? 'Creating Board...' : 'Create My Profile'}
         </button>
       </div>
     </div>
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: '32px 24px' }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+    <div className="min-h-screen bg-[#070913] text-slate-100 font-sans selection:bg-blue-500 selection:text-white py-12 px-6">
+      <div className="max-w-4xl mx-auto space-y-8">
 
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-          <div>
-            <span style={{ color: 'var(--cyan)', fontWeight: 800, fontSize: '20px' }}>Pulse</span>
-            <span style={{ color: 'var(--orange)', fontWeight: 800, fontSize: '20px' }}>Board</span>
+        {/* Navigation Header */}
+        <div className="flex items-center justify-between border-b border-slate-900 pb-6 shrink-0">
+          <div className="flex items-center gap-1.5">
+            <span className="text-lg font-extrabold text-white font-display">
+              Pulse<span className="text-orange-500">Board</span>
+            </span>
+            <div className="w-1 h-1 bg-orange-500 rounded-full mt-1.5"></div>
           </div>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          
+          <div className="flex items-center gap-4">
             {profile && (
-              <Link to={`/p/${profile.username}`} style={{
-                fontFamily: 'monospace', fontSize: '11px', color: 'var(--cyan)',
-                background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.25)',
-                padding: '6px 14px', borderRadius: '2px'
-              }}>
+              <Link 
+                to={`/p/${profile.username}`} 
+                className="hidden sm:inline-block px-3 py-1.5 bg-blue-950/20 border border-blue-500/20 hover:border-blue-500/40 text-blue-400 hover:text-blue-300 font-mono text-[10px] rounded-lg transition-all"
+              >
                 pulseboard.duckdns.org/p/{profile.username}
               </Link>
             )}
-            <button onClick={logout} style={{ ...styles.btnSm, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)' }}>
+            <button 
+              onClick={logout} 
+              className="px-3.5 py-1.5 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+            >
               Logout
             </button>
           </div>
         </div>
 
         {profile && (
-          <>
-            {/* Profile Card */}
-            <div style={styles.card}>
-              <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                <img src={user.github_avatar_url} alt="avatar" style={{ width: '72px', height: '72px', borderRadius: '50%', border: '2px solid var(--border)' }} />
-                <div style={{ flex: 1 }}>
+          <div className="space-y-8">
+            
+            {/* 1. PROFILE INFO CARD */}
+            <div className="p-6 bg-[#0e111a] border border-slate-800 rounded-xl shadow-lg">
+              <div className="flex flex-col sm:flex-row gap-6 items-start">
+                <img 
+                  src={user.github_avatar_url} 
+                  alt="avatar" 
+                  className="w-16 h-16 rounded-full border border-slate-800 shadow-md shrink-0 object-cover"
+                />
+                
+                <div className="flex-1 w-full space-y-4">
                   {editing ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {[
                         ['display_name', 'Display Name'],
                         ['headline', 'Headline'],
                         ['location', 'Location'],
                         ['website_url', 'Website URL'],
                       ].map(([key, label]) => (
-                        <div key={key}>
-                          <label style={styles.label}>{label}</label>
+                        <div key={key} className="space-y-1">
+                          <label className="text-[10px] uppercase font-bold tracking-wider text-slate-500 font-mono">{label}</label>
                           <input
-                            style={styles.input}
+                            className="w-full bg-[#0a0d16] border border-slate-900 focus:border-slate-700 rounded-lg p-2.5 text-xs text-white placeholder-slate-650 focus:outline-none transition-colors"
                             value={form[key] || ''}
                             onChange={e => setForm({ ...form, [key]: e.target.value })}
                           />
                         </div>
                       ))}
-                      <div style={{ gridColumn: '1/-1' }}>
-                        <label style={styles.label}>Bio</label>
+                      
+                      <div className="sm:col-span-2 space-y-1">
+                        <label className="text-[10px] uppercase font-bold tracking-wider text-slate-500 font-mono">Bio</label>
                         <textarea
-                          style={{ ...styles.input, height: '80px', resize: 'vertical' }}
+                          className="w-full bg-[#0a0d16] border border-slate-900 focus:border-slate-700 rounded-lg p-2.5 text-xs text-white placeholder-slate-650 focus:outline-none min-h-[80px] resize-y transition-colors"
                           value={form.bio || ''}
                           onChange={e => setForm({ ...form, bio: e.target.value })}
                         />
                       </div>
-                      <div style={{ gridColumn: '1/-1' }}>
-                        <label style={styles.label}>Currently Building</label>
+                      
+                      <div className="sm:col-span-2 space-y-1">
+                        <label className="text-[10px] uppercase font-bold tracking-wider text-slate-500 font-mono">Currently Building</label>
                         <input
-                          style={styles.input}
+                          className="w-full bg-[#0a0d16] border border-slate-900 focus:border-slate-700 rounded-lg p-2.5 text-xs text-white placeholder-slate-650 focus:outline-none transition-colors"
                           value={form.currently_building || ''}
                           onChange={e => setForm({ ...form, currently_building: e.target.value })}
                         />
                       </div>
-                      <div style={{ display: 'flex', gap: '12px', gridColumn: '1/-1' }}>
-                        <button onClick={saveProfile} disabled={saving} style={styles.btn}>
-                          {saving ? 'Saving...' : 'Save'}
+
+                      <div className="sm:col-span-2 flex items-center gap-3 pt-2">
+                        <button 
+                          onClick={saveProfile} 
+                          disabled={saving} 
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white rounded-lg shadow transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          {saving ? 'Saving...' : 'Save Changes'}
                         </button>
-                        <button onClick={() => setEditing(false)} style={{ ...styles.btn, background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)' }}>
+                        <button 
+                          onClick={() => setEditing(false)} 
+                          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
+                        >
                           Cancel
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
-                        <h2 style={{ fontSize: '22px', fontWeight: 800 }}>{profile.display_name || profile.username}</h2>
-                        <button onClick={() => setEditing(true)} style={styles.btnSm}>Edit</button>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 justify-between sm:justify-start">
+                        <h2 className="text-xl font-extrabold text-white">{profile.display_name || profile.username}</h2>
+                        <button 
+                          onClick={() => setEditing(true)} 
+                          className="px-3 py-1 bg-blue-950/20 border border-blue-500/20 text-blue-400 hover:text-blue-300 text-[10px] rounded-lg transition-colors cursor-pointer"
+                        >
+                          Edit Profile
+                        </button>
                       </div>
-                      <p style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--cyan)', marginBottom: '6px' }}>@{profile.username}</p>
-                      {profile.headline && <p style={{ color: 'var(--muted)', marginBottom: '6px' }}>{profile.headline}</p>}
-                      {profile.bio && <p style={{ fontSize: '13px', color: 'var(--text)', marginBottom: '8px', lineHeight: 1.7 }}>{profile.bio}</p>}
-                      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)' }}>
+                      
+                      <p className="font-mono text-xs text-blue-400">@{profile.username}</p>
+                      {profile.headline && <p className="text-xs text-slate-350">{profile.headline}</p>}
+                      {profile.bio && <p className="text-xs text-slate-400 leading-relaxed max-w-xl">{profile.bio}</p>}
+                      
+                      <div className="flex flex-wrap gap-x-5 gap-y-2 pt-2 text-[10px] text-slate-500 font-mono">
                         {profile.location && <span>📍 {profile.location}</span>}
                         {profile.currently_building && <span>🔨 {profile.currently_building}</span>}
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Skills */}
-            <div style={styles.card}>
-              <h3 style={styles.sectionTitle}>Skills</h3>
-              <div style={{ marginBottom: '20px' }}>
+            {/* 2. SKILL STACK CARD */}
+            <div className="p-6 bg-[#0e111a] border border-slate-800 rounded-xl shadow-lg space-y-6">
+              <h3 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold font-mono">Skills Stack</h3>
+              
+              {/* Existing Skills List */}
+              <div className="space-y-3">
                 {profile.skills.map(skill => (
-                  <div key={skill.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                    <span style={{ minWidth: '140px', fontFamily: 'monospace', fontSize: '12px' }}>{skill.name}</span>
-                    <div style={{ flex: 1, height: '6px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ width: `${skill.proficiency}%`, height: '100%', background: 'var(--cyan)', borderRadius: '3px' }} />
+                  <div key={skill.id} className="flex items-center gap-4 text-xs font-mono">
+                    <span className="min-w-[120px] text-slate-300 truncate">{skill.name}</span>
+                    <div className="flex-1 h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-900">
+                      <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full" style={{ width: `${skill.proficiency}%` }} />
                     </div>
-                    <span style={{ minWidth: '35px', fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)', textAlign: 'right' }}>{skill.proficiency}%</span>
-                    <button onClick={() => deleteSkill(skill.id)} style={{ ...styles.btnSm, color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', background: 'transparent', padding: '2px 8px', fontSize: '10px' }}>✕</button>
+                    <span className="min-w-[35px] text-right text-slate-500">{skill.proficiency}%</span>
+                    <button 
+                      onClick={() => deleteSkill(skill.id)} 
+                      className="px-2 py-0.5 rounded border border-red-500/20 text-red-500/80 hover:bg-red-500/10 text-[9px] font-semibold transition-colors cursor-pointer"
+                    >
+                      Delete
+                    </button>
                   </div>
                 ))}
+                {profile.skills.length === 0 && (
+                  <p className="text-xs text-slate-500 font-mono italic">No skills added yet.</p>
+                )}
               </div>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <div>
-                  <label style={styles.label}>Skill Name</label>
-                  <input style={styles.input} placeholder="e.g. React" value={newSkill.name} onChange={e => setNewSkill({ ...newSkill, name: e.target.value })} />
+
+              {/* Add Skill Form */}
+              <div className="pt-4 border-t border-slate-900/50 flex flex-col sm:flex-row gap-4 items-end">
+                <div className="flex-1 w-full space-y-1">
+                  <label className="text-[9px] uppercase tracking-wider text-slate-500 font-bold font-mono">Skill Name</label>
+                  <input 
+                    className="w-full bg-[#0a0d16] border border-slate-900 focus:border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none"
+                    placeholder="e.g. React" 
+                    value={newSkill.name} 
+                    onChange={e => setNewSkill({ ...newSkill, name: e.target.value })} 
+                  />
                 </div>
-                <div>
-                  <label style={styles.label}>Proficiency ({newSkill.proficiency}%)</label>
-                  <input type="range" min="1" max="100" value={newSkill.proficiency} onChange={e => setNewSkill({ ...newSkill, proficiency: parseInt(e.target.value) })} style={{ width: '120px' }} />
+                
+                <div className="space-y-1 w-full sm:w-auto">
+                  <label className="text-[9px] uppercase tracking-wider text-slate-500 font-bold font-mono">Proficiency ({newSkill.proficiency}%)</label>
+                  <div className="flex items-center h-8">
+                    <input 
+                      type="range" 
+                      min="1" 
+                      max="100" 
+                      value={newSkill.proficiency} 
+                      onChange={e => setNewSkill({ ...newSkill, proficiency: parseInt(e.target.value) })} 
+                      className="w-full sm:w-28 accent-blue-500" 
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label style={styles.label}>Category</label>
-                  <select style={styles.input} value={newSkill.category} onChange={e => setNewSkill({ ...newSkill, category: e.target.value })}>
+                
+                <div className="space-y-1 w-full sm:w-auto">
+                  <label className="text-[9px] uppercase tracking-wider text-slate-500 font-bold font-mono">Category</label>
+                  <select 
+                    className="w-full bg-[#0a0d16] border border-slate-900 focus:border-slate-700 rounded-lg p-2 text-xs text-white focus:outline-none"
+                    value={newSkill.category} 
+                    onChange={e => setNewSkill({ ...newSkill, category: e.target.value })}
+                  >
                     <option>DevOps</option>
                     <option>Backend</option>
                     <option>Frontend</option>
@@ -250,60 +318,40 @@ export default function Dashboard() {
                     <option>Other</option>
                   </select>
                 </div>
-                <button onClick={addSkill} style={styles.btn}>Add Skill</button>
+
+                <button 
+                  onClick={addSkill} 
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white rounded-lg shadow transition-colors cursor-pointer w-full sm:w-auto"
+                >
+                  Add Skill
+                </button>
+              </div>
+
+            </div>
+
+            {/* 3. SOCIAL LINKS CARD */}
+            <div className="p-6 bg-[#0e111a] border border-slate-800 rounded-xl shadow-lg space-y-4">
+              <h3 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold font-mono">Social Links</h3>
+              
+              <div className="space-y-2">
+                {profile.social_links.map(link => (
+                  <div key={link.id} className="text-xs font-mono text-slate-300">
+                    <span className="text-blue-400 font-semibold">{link.platform}:</span>{' '}
+                    <a href={link.url} target="_blank" rel="noreferrer" className="hover:underline text-slate-400">
+                      {link.url}
+                    </a>
+                  </div>
+                ))}
+                {profile.social_links.length === 0 && (
+                  <p className="text-xs text-slate-500 font-mono italic">No social links added yet. Add them via API calls.</p>
+                )}
               </div>
             </div>
 
-            {/* Social Links */}
-            <div style={styles.card}>
-              <h3 style={styles.sectionTitle}>Social Links</h3>
-              {profile.social_links.map(link => (
-                <div key={link.id} style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--cyan)', marginBottom: '8px' }}>
-                  {link.platform}: <a href={link.url} target="_blank" rel="noreferrer">{link.url}</a>
-                </div>
-              ))}
-              {profile.social_links.length === 0 && (
-                <p style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--muted)' }}>No social links yet. Add them via the API for now.</p>
-              )}
-            </div>
-          </>
+          </div>
         )}
+
       </div>
     </div>
   )
-}
-
-const styles = {
-  center: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    height: '100vh', background: 'var(--bg)', color: 'var(--text)',
-    fontFamily: 'monospace'
-  },
-  card: {
-    background: 'var(--surface)', border: '1px solid var(--border)',
-    borderRadius: '6px', padding: '24px', marginBottom: '20px'
-  },
-  sectionTitle: {
-    fontFamily: 'monospace', fontSize: '10px', letterSpacing: '2px',
-    textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '16px'
-  },
-  btn: {
-    background: 'var(--cyan)', color: '#07090f', border: 'none',
-    padding: '10px 20px', borderRadius: '3px', fontSize: '12px',
-    fontWeight: 700, cursor: 'pointer', letterSpacing: '0.5px'
-  },
-  btnSm: {
-    background: 'rgba(0,229,255,0.08)', color: 'var(--cyan)',
-    border: '1px solid rgba(0,229,255,0.25)', padding: '4px 12px',
-    borderRadius: '2px', fontSize: '11px', cursor: 'pointer'
-  },
-  input: {
-    background: 'var(--surface2)', border: '1px solid var(--border)',
-    color: 'var(--text)', padding: '8px 12px', borderRadius: '3px',
-    fontSize: '12px', fontFamily: 'monospace', width: '100%', outline: 'none'
-  },
-  label: {
-    display: 'block', fontFamily: 'monospace', fontSize: '10px',
-    color: 'var(--muted)', marginBottom: '4px', letterSpacing: '1px'
-  }
 }

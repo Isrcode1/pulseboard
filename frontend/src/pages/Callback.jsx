@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 export default function Callback() {
@@ -44,13 +44,9 @@ export default function Callback() {
   }, [])
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '100vh', background: 'var(--bg)', color: 'var(--cyan)',
-      fontFamily: 'monospace', fontSize: '14px', flexDirection: 'column', gap: '16px'
-    }}>
-      <div>Authenticating with GitHub...</div>
-      <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Please wait</div>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#070913] text-blue-400 font-mono text-sm gap-2">
+      <div className="animate-pulse">Authenticating with GitHub...</div>
+      <div className="text-[10px] text-slate-500">Please wait</div>
     </div>
   )
 }

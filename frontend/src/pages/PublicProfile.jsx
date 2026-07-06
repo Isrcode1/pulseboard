@@ -1,3 +1,4 @@
+import React from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
@@ -12,19 +13,30 @@ export default function PublicProfile() {
   const { data: profile, isLoading, error } = useQuery({
     queryKey: ['profile', username],
     queryFn: () => fetchProfile(username),
+    retry: false
   })
 
   if (isLoading) return (
-    <div style={styles.center}>
-      <span style={{ fontFamily: 'monospace', color: 'var(--cyan)' }}>Loading {username}...</span>
+    <div className="flex items-center justify-center min-h-screen bg-[#070913]">
+      <span className="font-mono text-sm text-blue-400 animate-pulse">Loading @{username}'s board...</span>
     </div>
   )
 
   if (error) return (
-    <div style={styles.center}>
-      <div style={{ textAlign: 'center' }}>
-        <h2 style={{ color: 'var(--orange)', marginBottom: '12px' }}>Profile not found</h2>
-        <p style={{ fontFamily: 'monospace', color: 'var(--muted)' }}>@{username} hasn't joined PulseBoard yet.</p>
+    <div className="flex items-center justify-center min-h-screen bg-[#070913] px-6 text-center">
+      <div className="max-w-md space-y-4">
+        <h2 className="text-xl font-bold text-orange-500">Profile Not Found</h2>
+        <p className="font-mono text-xs text-slate-400">
+          @{username} hasn't joined PulseBoard yet.
+        </p>
+        <div className="pt-4">
+          <a 
+            href="/" 
+            className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white rounded-lg transition-colors"
+          >
+            Create Your Board
+          </a>
+        </div>
       </div>
     </div>
   )
@@ -32,116 +44,111 @@ export default function PublicProfile() {
   const categories = [...new Set(profile.skills.map(s => s.category).filter(Boolean))]
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: '0' }}>
-      {/* Hero */}
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(0,229,255,0.06), rgba(255,107,53,0.04))',
-        borderBottom: '1px solid var(--border)', padding: '48px 24px 32px'
-      }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-          <div style={{
-            width: '88px', height: '88px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--cyan), var(--purple))',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '32px', flexShrink: 0, border: '2px solid var(--border)'
-          }}>
+    <div className="min-h-screen bg-[#070913] text-slate-100 font-sans selection:bg-blue-500 selection:text-white">
+      
+      {/* Hero Section */}
+      <div className="bg-gradient-to-br from-blue-900/10 via-[#0e111a] to-indigo-900/5 border-b border-slate-900/50 py-16 px-6">
+        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row gap-8 items-center sm:items-start text-center sm:text-left">
+          
+          {/* Avatar Icon */}
+          <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-3xl shrink-0 border border-slate-700 shadow-lg">
             ⚡
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '28px', fontWeight: 800 }}>{profile.display_name || profile.username}</h1>
+
+          <div className="flex-1 space-y-3">
+            <div className="flex flex-col sm:flex-row items-center gap-3 justify-center sm:justify-start">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white">{profile.display_name || profile.username}</h1>
               {profile.open_to_work && (
-                <span style={{
-                  background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.3)',
-                  color: 'var(--green)', fontSize: '10px', fontFamily: 'monospace',
-                  padding: '3px 10px', borderRadius: '2px', letterSpacing: '1px'
-                }}>OPEN TO WORK</span>
+                <span className="px-2.5 py-1 bg-green-500/10 border border-green-500/30 text-green-400 font-mono text-[9px] tracking-wider rounded-md font-bold">
+                  OPEN TO WORK
+                </span>
               )}
             </div>
-            <p style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--cyan)', marginBottom: '8px' }}>
-              @{profile.username}
-            </p>
+
+            <p className="font-mono text-xs text-blue-400">@{profile.username}</p>
+            
             {profile.headline && (
-              <p style={{ color: 'var(--muted)', fontSize: '14px', marginBottom: '10px' }}>{profile.headline}</p>
+              <p className="text-sm text-slate-305">{profile.headline}</p>
             )}
+            
             {profile.bio && (
-              <p style={{ fontSize: '13px', color: 'var(--text)', lineHeight: 1.8, marginBottom: '12px', maxWidth: '600px' }}>{profile.bio}</p>
+              <p className="text-xs text-slate-400 leading-relaxed max-w-xl">{profile.bio}</p>
             )}
-            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-              {profile.location && (
-                <span style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)' }}>📍 {profile.location}</span>
-              )}
+
+            <div className="flex flex-wrap gap-x-5 gap-y-2 pt-2 justify-center sm:justify-start text-[11px] text-slate-500 font-mono">
+              {profile.location && <span>📍 {profile.location}</span>}
               {profile.social_links.map(link => (
-                <a key={link.id} href={link.url} target="_blank" rel="noreferrer"
-                  style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cyan)' }}>
+                <a 
+                  key={link.id} 
+                  href={link.url} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="text-blue-400 hover:text-blue-300 transition-colors"
+                >
                   {link.platform} →
                 </a>
               ))}
             </div>
           </div>
+
         </div>
       </div>
 
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '32px 24px' }}>
-
+      {/* Profile Details Body */}
+      <div className="max-w-3xl mx-auto px-6 py-12 space-y-12">
+        
         {/* Currently Building */}
         {profile.currently_building && (
-          <div style={{
-            background: 'rgba(0,229,255,0.04)', border: '1px solid rgba(0,229,255,0.15)',
-            borderLeft: '3px solid var(--cyan)', borderRadius: '4px',
-            padding: '16px 20px', marginBottom: '24px'
-          }}>
-            <p style={{ fontFamily: 'monospace', fontSize: '10px', color: 'var(--cyan)', letterSpacing: '2px', marginBottom: '6px' }}>CURRENTLY BUILDING</p>
-            <p style={{ fontSize: '14px', color: 'var(--text)' }}>{profile.currently_building}</p>
+          <div className="p-5 bg-[#0e111a] border border-slate-800 rounded-xl border-l-4 border-l-blue-500 space-y-2">
+            <span className="text-[9px] uppercase tracking-wider text-blue-400 font-bold font-mono block">Currently Building</span>
+            <p className="text-xs text-slate-300 leading-normal">{profile.currently_building}</p>
           </div>
         )}
 
-        {/* Skills */}
+        {/* Skill Stack */}
         {profile.skills.length > 0 && (
-          <div style={{ marginBottom: '32px' }}>
-            <h2 style={styles.sectionTitle}>Skill Stack</h2>
-            {categories.map(cat => (
-              <div key={cat} style={{ marginBottom: '20px' }}>
-                <p style={{ fontFamily: 'monospace', fontSize: '9px', color: 'var(--muted)', letterSpacing: '2px', marginBottom: '10px' }}>{cat.toUpperCase()}</p>
-                {profile.skills.filter(s => s.category === cat).map(skill => (
-                  <div key={skill.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                    <span style={{ minWidth: '150px', fontFamily: 'monospace', fontSize: '12px', color: 'var(--text)' }}>{skill.name}</span>
-                    <div style={{ flex: 1, height: '5px', background: 'var(--border)', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{
-                        width: `${skill.proficiency}%`, height: '100%',
-                        background: `linear-gradient(90deg, var(--cyan), var(--purple))`,
-                        borderRadius: '3px',
-                        transition: 'width 1s ease'
-                      }} />
-                    </div>
-                    <span style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)', minWidth: '35px', textAlign: 'right' }}>{skill.proficiency}%</span>
+          <div className="space-y-6">
+            <h2 className="text-[10px] uppercase tracking-widest text-slate-500 font-bold font-mono">Skill Stack</h2>
+            
+            <div className="space-y-6">
+              {categories.map(cat => (
+                <div key={cat} className="space-y-3 p-5 bg-[#0a0d16] border border-slate-900 rounded-xl">
+                  <span className="text-[9px] uppercase tracking-widest text-slate-500 font-semibold font-mono block">
+                    {cat}
+                  </span>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                    {profile.skills.filter(s => s.category === cat).map(skill => (
+                      <div key={skill.id} className="space-y-1.5">
+                        <div className="flex justify-between text-xs font-mono">
+                          <span className="text-slate-300">{skill.name}</span>
+                          <span className="text-slate-450">{skill.proficiency}%</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden border border-slate-900">
+                          <div 
+                            className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500" 
+                            style={{ width: `${skill.proficiency}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ))}
+
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Footer */}
-        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '24px', textAlign: 'center' }}>
-          <p style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--muted)' }}>
-            Powered by{' '}
-            <a href="/" style={{ color: 'var(--cyan)' }}>PulseBoard</a>
-            {' '}· Get your profile at pulseboard.duckdns.org
+        <div className="pt-8 border-t border-slate-900/50 text-center text-[10px] text-slate-650 font-mono">
+          <p>
+            Powered by <a href="/" className="text-blue-400 hover:underline">PulseBoard</a> · Get your board at pulseboard.duckdns.org
           </p>
         </div>
+
       </div>
+
     </div>
   )
-}
-
-const styles = {
-  center: {
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    height: '100vh', background: 'var(--bg)'
-  },
-  sectionTitle: {
-    fontFamily: 'monospace', fontSize: '10px', letterSpacing: '2px',
-    textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '16px'
-  }
 }
