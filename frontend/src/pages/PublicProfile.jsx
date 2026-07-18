@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 
 const fetchProfile = async (username) => {
-  const { data } = await axios.get(`/p/${username}`)
+  const { data } = await axios.get(`/api/profile/p/${username}`)
   return data
 }
 
