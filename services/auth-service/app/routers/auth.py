@@ -1,6 +1,7 @@
 import hashlib
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -75,6 +76,28 @@ async def github_callback(code: str, db: AsyncSession = Depends(get_db)):
         url=f"{settings.FRONTEND_URL}/callback?token={access_token}&refresh={refresh_token_str}",
         status_code=302,
     )
+
+@router.get("/me", response_model=schemas.UserOut)
+async def get_me(
+    authorization: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db),
+):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing token")
+
+    payload = decode_token(authorization.split(" ")[1])
+    if not payload or payload.get("type") != "access":
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid token")
+
+    result = await db.execute(
+        select(models.User).where(models.User.id == payload["sub"])
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "User not found")
+
+    return user
+
 
 @router.post("/verify", response_model=schemas.TokenVerifyResponse)
 async def verify_token(token: str, db: AsyncSession = Depends(get_db)):

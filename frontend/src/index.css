@@ -1,14 +1,37 @@
 @import "tailwindcss";
 
+/*
+ * PulseBoard "Developer Kinetic" design tokens.
+ * Dark developer-tool aesthetic: hierarchy through luminance, not saturation.
+ */
 @theme {
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Grayscale architecture */
+  --color-pb-bg: #0a0a0f;
+  --color-pb-surface: #111827;
+  --color-pb-surface-2: #1f2937;
+  --color-pb-surface-3: #272a31;
+  --color-pb-border: #1e293b;
+  --color-pb-border-bright: #334155;
+
+  /* Brand */
+  --color-pb-primary: #3b82f6;
+  --color-pb-primary-soft: #adc6ff;
+  --color-pb-orange: #ea580c;
+
+  /* Text */
+  --color-pb-text: #e1e2ec;
+  --color-pb-muted: #c2c6d6;
+  --color-pb-faint: #8c909f;
 }
 
 body {
   margin: 0;
-  background-color: #070913;
-  color: #f3f4f6;
+  background-color: var(--color-pb-bg);
+  color: var(--color-pb-text);
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
 }

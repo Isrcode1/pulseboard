@@ -23,7 +23,7 @@ async def get_public_profile(
         )
         .where(
             models.Profile.username == username,
-            models.Profile.is_public == True
+            models.Profile.is_public.is_(True)
         )
     )
     profile = result.scalar_one_or_none()
