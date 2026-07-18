@@ -1,217 +1,193 @@
-# 🍲 Nigerian Food Battle — Multi-Container Voting App
+# ⚡ PulseBoard
 
-> A fully Dockerised, cloud-deployed voting application built as a capstone project.
-> Vote between **Amala + Gbegiri** and **Afang + Native Fufu** — and let the people decide!
+> A developer profile & portfolio platform — sign in with GitHub, build your profile, and share a public page that shows what you're building right now.
 
-**Live App:** http://98.91.216.50:5000
-
----
-
-## 📌 Project Overview
-
-This is a multi-container web application that allows users to vote between two Nigerian food options. Votes are processed by a Node.js worker, stored in PostgreSQL, and displayed in real time on the results page. The entire application is containerised with Docker and deployed to AWS EC2 via a GitHub Actions CI/CD pipeline.
-
-**Application Type:** Interactive voting platform with real-time results dashboard
+PulseBoard is a microservices application built end-to-end with a full DevOps workflow: Docker, CI/CD, Terraform, Ansible, and Kubernetes.
 
 ---
 
-## 🎯 Project Objectives
+## 📌 What It Does
 
-- Build a production-grade multi-container application using microservices architecture
-- Containerise all services using Docker and Docker Compose
-- Automate deployment using a CI/CD pipeline with GitHub Actions
-- Deploy the application to a cloud server (AWS EC2)
-- Demonstrate team collaboration using Git branching strategy
-
----
-
-## 👥 Team Members
-
-| Name | Role |
-|------|------|
-| Folarin Israel | Team Lead / DevOps |
-| Team Member 1 | Frontend Developer |
-| Team Member 2 | Backend / Worker Developer |
-| Team Member 3 | Database Engineer / QA |
+- **Sign in with GitHub** — OAuth login, no passwords
+- **Build your profile** — display name, headline, bio, location, "currently building", open-to-work flag
+- **Add your stack** — skills, social links, and pinned projects
+- **Share it** — every profile gets a public page at `/p/<username>`
+- **Guided onboarding** — a 6-step wizard walks new users through profile setup
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│              AWS EC2 (Ubuntu)               │
-│  ┌──────────────────────────────────────┐   │
-│  │        Docker Compose Network        │   │
-│  │                                      │   │
-│  │  ┌─────────────┐  ┌──────────────┐  │   │
-│  │  │   Flask     │  │   Node.js    │  │   │
-│  │  │  Frontend   │→ │   Worker     │  │   │
-│  │  │  :5000      │  │              │  │   │
-│  │  └─────────────┘  └──────┬───────┘  │   │
-│  │                          │ writes   │   │
-│  │  ┌───────────────────────▼──────┐   │   │
-│  │  │         PostgreSQL           │   │   │
-│  │  │         foodvotes DB         │   │   │
-│  │  └──────────────────────────────┘   │   │
-│  └──────────────────────────────────────┘   │
-└─────────────────────────────────────────────┘
-         ↑
-   GitHub Actions CI/CD (SSH deploy on push to main)
+                        ┌──────────────────────────────────────────┐
+                        │            Nginx (port 80)               │
+                        │  /            → React frontend           │
+                        │  /api/auth/   → auth-service             │
+                        │  /api/profile/→ profile-service          │
+                        └───────┬──────────────┬───────────────────┘
+                                │              │
+                  ┌─────────────▼───┐  ┌───────▼──────────┐
+                  │  auth-service   │  │ profile-service  │
+                  │  FastAPI :8001  │  │  FastAPI :8002   │
+                  │  GitHub OAuth   │  │  profiles, skills│
+                  │  JWT sessions   │  │  links, projects │
+                  └───────┬─────────┘  └───────┬──────────┘
+                          │                    │
+                    ┌─────▼────────────────────▼─────┐
+                    │     PostgreSQL 16  ·  Redis 7  │
+                    └────────────────────────────────┘
 ```
+
+### Services
+
+| Service | Status | Purpose |
+|---------|--------|---------|
+| `auth-service` | ✅ Working | GitHub OAuth, JWT issue/verify, sessions |
+| `profile-service` | ✅ Working | Profiles, skills, social links, pinned projects, public pages |
+| `frontend` | ✅ Working | React SPA — landing page, onboarding wizard, dashboard, public profile |
+| `aggregator-service` | 🚧 Scaffold | Planned: pull activity from GitHub, dev.to, Hashnode |
+| `analytics-service` | 🚧 Scaffold | Planned: profile views and engagement stats |
+| `notification-service` | 🚧 Scaffold | Planned: email / in-app notifications |
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| Frontend | Python Flask | Serves the voting UI and results page |
-| Worker | Node.js | Processes votes in the background |
-| Database | PostgreSQL | Stores and persists all vote data |
-| Containerisation | Docker + Docker Compose | Packages all services into containers |
-| CI/CD | GitHub Actions | Automates build and deployment |
-| Cloud | AWS EC2 | Hosts the live application |
+| Layer | Technology |
+|-------|-----------|
+| Backend | Python · FastAPI · SQLAlchemy (async) · Pydantic |
+| Frontend | React 19 · Vite · Tailwind CSS 4 · TanStack Query |
+| Data | PostgreSQL 16 · Redis 7 |
+| Containers | Docker · Docker Compose |
+| CI/CD | GitHub Actions (ruff lint, pytest, Docker build, deploy on merge to `main`) |
+| Infrastructure | Terraform (VPC, EC2, S3 remote state) · Ansible (server provisioning) |
+| Orchestration | Kubernetes (kind) — Deployment, HPA, Postgres StatefulSet |
+| Observability | Prometheus metrics via `prometheus-fastapi-instrumentator` |
 
 ---
 
-## 📁 Project Structure
-
-```
-multi-container-voting-app/
-├── flask-frontend/
-│   ├── app.py                  # Flask application
-│   ├── requirements.txt        # Python dependencies
-│   ├── static/
-│   │   └── css/style.css       # Styles
-│   └── templates/
-│       ├── index.html          # Voting page
-│       └── results.html        # Results page
-├── node-worker/
-│   ├── worker.js               # Vote processing worker
-│   └── package.json            # Node dependencies
-├── postgres/
-│   └── init.sql                # Database schema
-├── .github/
-│   └── workflows/
-│       └── deploy.yml          # GitHub Actions CI/CD
-├── Dockerfile.vote             # Flask container
-├── Dockerfile.worker           # Node.js container
-├── docker-compose.yml          # Multi-container config
-├── .env.example                # Environment variable template
-└── README.md
-```
-
----
-
-## 🚀 How to Run the Project
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Docker Desktop installed and running
-- Git installed
-- A terminal / command prompt
+- Docker & Docker Compose
+- Node.js 20+ (for frontend dev)
+- A GitHub OAuth App ([create one here](https://github.com/settings/developers))
 
-### Step 1 — Clone the repository
-
-```bash
-git clone https://github.com/Isrcode1/multi-container-voting-app.git
-cd multi-container-voting-app
-```
-
-### Step 2 — Set up environment variables
+### 1 — Clone and configure
 
 ```bash
+git clone https://github.com/Isrcode1/pulseboard.git
+cd pulseboard
 cp .env.example .env
 ```
 
-Open `.env` and fill in your values:
+Fill in `.env`:
 
 ```env
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=foodvotes
-FLASK_ENV=development
+GITHUB_CLIENT_ID=your_oauth_app_client_id
+GITHUB_CLIENT_SECRET=your_oauth_app_client_secret
+GITHUB_REDIRECT_URI=http://localhost/api/auth/auth/github/callback
+JWT_SECRET_KEY=change-me-to-something-random
 ```
 
-### Step 3 — Build and start all containers
+### 2 — Start the backend stack
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
-### Step 4 — Access the application
+This starts PostgreSQL, Redis, auth-service, and Nginx on port 80.
 
-| Page | URL |
-|------|-----|
-| Voting page | http://localhost:5000 |
-| Results page | http://localhost:5000/results |
-
-### Step 5 — Stop the application
+### 3 — Run the frontend (dev mode)
 
 ```bash
-docker-compose down
+cd frontend
+npm install
+npm run dev
+```
+
+The app is available at http://localhost:5173.
+
+### 4 — Run backend tests
+
+```bash
+cd services/auth-service
+pip install -r requirements.txt
+pytest tests/ -v
 ```
 
 ---
 
-## ⚙️ CI/CD Pipeline
+## 🔌 API Overview
 
-The GitHub Actions workflow (`.github/workflows/deploy.yml`) automatically deploys the app to AWS EC2 on every push to the `main` branch:
+### auth-service (`:8001`)
 
-1. **Checkout** — pulls the latest code
-2. **SSH into EC2** — connects using stored SSH key secret
-3. **Pull latest** — `git pull origin main`
-4. **Rebuild** — `docker-compose down && docker-compose up -d --build`
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/auth/github/login` | Redirect to GitHub OAuth |
+| GET | `/auth/github/callback` | OAuth callback → issues JWT, redirects to frontend |
+| POST | `/auth/verify` | Verify a JWT |
+| GET | `/health` | Health check |
 
-### Required GitHub Secrets
+### profile-service (`:8002`)
 
-| Secret | Description |
-|--------|-------------|
-| `EC2_HOST` | Public IP of the EC2 instance |
-| `EC2_USER` | SSH username (ubuntu) |
-| `EC2_SSH_KEY` | Contents of the `.pem` private key file |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/profile` | Create profile (onboarding) |
+| GET | `/profile/me` | Get own profile |
+| PUT | `/profile/me` | Update own profile |
+| POST | `/profile/me/skills` | Add a skill |
+| DELETE | `/profile/me/skills/{id}` | Remove a skill |
+| POST | `/profile/me/social-links` | Add a social link |
+| POST | `/profile/me/projects` | Pin a project |
+| GET | `/p/{username}` | Public profile page (no auth) |
+| GET | `/health` | Health check |
+
+Interactive docs are available at `/docs` on each service when `DEBUG=true`.
 
 ---
 
-## 🌐 Live Deployment
+## ⚙️ CI/CD
 
-- **Live URL:** http://98.91.216.50:5000
-- **Server:** AWS EC2 t2.micro — Ubuntu 22.04 LTS
-- **Region:** us-east-1
+**CI** (`.github/workflows/ci.yml`) runs on every push:
+1. **Lint** — `ruff check` on auth-service
+2. **Test** — `pytest` against the test suite
+3. **Build** — Docker image build via Buildx
+
+**CD** (`.github/workflows/cd.yml`) runs on merge to `main`: builds and pushes the image, then deploys to the server over SSH.
 
 ---
 
-## 🗃️ Database Schema
+## ☸️ Infrastructure
 
-```sql
-CREATE TABLE IF NOT EXISTS votes (
-    id SERIAL PRIMARY KEY,
-    food_option VARCHAR(100)
-);
+```
+infrastructure/
+├── terraform/        # VPC, subnet, security group, EC2, S3 remote state
+├── ansible/          # Roles: common, docker, app — full server provisioning
+└── scripts/          # Server setup helpers
+
+k8s/
+├── namespace.yaml
+├── auth-service/     # Deployment, Service, ConfigMap, Secret, HPA
+├── postgres/         # StatefulSet + Service (persistent storage)
+└── kind-config.yaml  # Local cluster config
 ```
 
----
-
-## 🤝 Git Branching Strategy
-
-```
-main        ← production (protected, CI/CD deploys from here)
-  └── develop ← integration branch
-        └── feature/<name>/<feature> ← individual work branches
-```
-
-**Rule:** Always `git pull origin develop` before starting work. Open a PR to merge into `develop`. Team lead merges `develop` into `main`.
+Local cluster: `kind create cluster --config k8s/kind-config.yaml`, then apply the manifests in `k8s/`.
 
 ---
 
-## 📸 Screenshots
+## 🗺️ Roadmap
 
-The app features:
-- A **Nigerian Food Battle** voting UI with food photos and animated vote bars
-- A **Live Results page** showing real vote counts and percentages
-- A dynamic **winner banner** that updates based on current votes
+- [ ] Wire profile-service and the frontend into the Docker Compose stack and Nginx routing
+- [ ] Extend CI to lint/test profile-service and build the frontend
+- [ ] Database migrations with Alembic (replace `create_all` on startup)
+- [ ] aggregator-service — sync GitHub / dev.to / Hashnode activity into the profile "pulse"
+- [ ] analytics-service — profile view counts and engagement stats
+- [ ] notification-service — email and in-app notifications
+- [ ] K8s manifests for profile-service and the frontend
 
 ---
 
-*Built with ❤️ by the team as a DevOps capstone project*
+*Built by Folarin Israel as a full-stack DevOps project.*
