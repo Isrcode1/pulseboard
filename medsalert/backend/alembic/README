@@ -1,0 +1,8 @@
+Generate the initial migration once the database is up:
+
+    cd backend
+    alembic revision --autogenerate -m "initial schema"
+    alembic upgrade head
+
+The dev server also runs create_all on startup, so migrations are only
+required for production deploys and future schema changes.
